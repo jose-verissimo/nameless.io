@@ -16,24 +16,25 @@ app.get('/', (req, res) => res.send('God is in the hack!'));
 
 io.on("connection", (socket) => {
     socket.on("disconnect", () => {
-        console.log("A user has disconnected");
+        console.log(`${socket.username} has disconnected`);
     });
 
+    // params: data is username
     socket.on('userJoinSent', (data) => {
-        socket.username = data;
-        socket.join('room 1', () => {
-            // get all clients of room 1
-            var clients = io.sockets.adapter.rooms['room 1'].sockets;
-            // printing all players in room 1
-            for (var clientID in clients) {
-                var clientSocket = io.sockets.connected[clientID];
-                console.log(clientSocket.username);
+        // Check if username already exists
+        var clients = io.sockets.adapter.rooms['room 1'].sockets;
+        for (var clientID in clients) {
+            var clientSocket = io.sockets.connected[clientID];
+            if (clientSocket.username == data) {
+                socket.emmit()
+            } else {
+                socket.username = data;
+                socket.join('room 1', () => {});
             }
-        });
+        }
 
         // instantiate player
-        var player = new Player();
-        player.username = data;
+        var player = new Player(data);
         players[player.username] = player;
         io.emit('userJoinUpdate', player);
     });
