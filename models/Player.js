@@ -2,13 +2,19 @@ class Player {
     constructor() {
 
     }
-
-    set name(name) {
-        this._name = name;
+    set username(name) {
+        this._username = name;
+    }
+    get username() {
+        return this._username;
+    }
+    set movement(data) {
+        this._x = data.x;
+        this._y = data.y;
     }
 
-    get name() {
-        return this._name;
+    get movement() {
+        return [this._x, this._y];
     }
 }
 

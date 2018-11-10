@@ -22,12 +22,19 @@
     </style>
 </head>
 <body>
+    <div id="join">
+        <form>
+            <input type="text" placeholder="username" id="username">
+            <button id="join-button">Join</button>
+        </form>
+    </div>
     <div id="frame"></div>
     <script src="/js/pixi.js"></script>
-    <script src="/js/scripts.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        var socket = io();
-    </script>
+    <script
+        src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="/js/min/scripts.js"></script>
 </body>
 </html>

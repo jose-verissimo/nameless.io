@@ -1,3 +1,6 @@
+var setup = require('./setup.js');
+var functions = require('./functions.js');
+
 // The application will create a renderer using WebGL, if possible,
 // with a fallback to a canvas render. It will also setup the ticker
 // and the root stage PIXI.Container
@@ -7,87 +10,83 @@ const app = new PIXI.Application({
     width: window.innerWidth,
     height: window.innerHeight
 });
-let bunny;
+document.querySelector('#frame').appendChild(app.view);
+
+// Variables.
+let player;
+let allPlayers = [];
+var socket = io();
+let username = "";
+
+let wKey = functions.keyboard('w');
+let aKey = functions.keyboard('a');
+let sKey = functions.keyboard('s');
+let dKey = functions.keyboard('d');
 
 // The application will create a canvas element for you that you
 // can then insert into the DOM
-document.querySelector('#frame').appendChild(app.view);
-
-let keyObject = keyboard('w');
-
 // load the texture we need
-PIXI.loader.add('bunny', 'images/bunny.png').load((loader, resources) => {
+PIXI.loader
+.add('bunny', 'images/bunny.png')
+.load((loader, resources) => {
+
     // This creates a texture from a 'bunny.png' image
-    bunny = new PIXI.Sprite(resources.bunny.texture);
+    player = new PIXI.Sprite(resources.bunny.texture);
 
     // Setup the position of the bunny
-    bunny.x = app.renderer.screen.width / 2;
-    bunny.y = app.renderer.screen.height / 2;
+    player.x = app.renderer.screen.width / 2;
+    player.y = app.renderer.screen.height / 2;
 
     // Rotate around the center
-    bunny.anchor.x = 0.5;
-    bunny.anchor.y = 0.5;
+    player.anchor.x = 0.5;
+    player.anchor.y = 0.5;
 
     // Add the bunny to the scene we are building
-    app.stage.addChild(bunny);
+    app.stage.addChild(player);
 
     // Listen for frame updates
     app.ticker.add(() => {
-         // each frame we spin the bunny around a bit
-        bunny.rotation += 0.01;
+        if (wKey.isDown && player.y >= 0) { player.y -= 10; }
+        if (sKey.isDown && player.y <= window.innerWidth) { player.y += 10; }
+
+        if (aKey.isDown && player.y >= 0) { player.x -= 10; }
+        if (dKey.isDown && player.y <= window.innerHeight) { player.x += 10; }
+
+        if (wKey.isDown || sKey.isDown || aKey.isDown || dKey.isDown) {
+            var data = { x: player.x, y: player.y, username: username };
+            socket.emit('playerMovementSent', data); 
+        }
     });
+
+    $("#join form").submit(function(e) {
+        e.preventDefault();
+        socket.emit('userJoinSent', $("#join #username").val());
+        username = $("#join #username").val();
+        $("#join #username").val('');
+    });
+
+
+    socket.on('playerMovementUpdate', function(playerObj) {
+        if (typeof allPlayers[playerObj.username] != "undefined") {
+            allPlayers[playerObj.username].x = playerObj.x;
+            allPlayers[playerObj.username].y = playerObj.y;
+        }
+    }); 
+
+    socket.on('userJoinUpdate', function(playersObj) {
+        for (let key in playersObj) {
+            let username = playersObj[key].username;
+            if (typeof allPlayers[username] == "undefined") {
+                let newPlayer = new PIXI.Sprite(resources.bunny.texture);
+                newPlayer.x = app.renderer.screen.width / 2;
+                newPlayer.y = app.renderer.screen.height / 2;
+                newPlayer.anchor.x = 0.5;
+                newPlayer.anchor.y = 0.5;
+                app.stage.addChild(newPlayer);
+                
+                allPlayers[username] = newPlayer;
+            }
+        }
+
+    }); 
 });
-
-
-keyObject.press = () => {
-    //key object pressed
-    bunny.x += 0.1;
-    console.log('test');
-};
-
-function keyboard(value) {
-    let key = {};
-    key.value = value;
-    key.isDown = false;
-    key.isUp = true;
-    key.press = undefined;
-    key.release = undefined;
-    //The `downHandler`
-    key.downHandler = event => {
-      if (event.key === key.value) {
-        if (key.isUp && key.press) key.press();
-        key.isDown = true;
-        key.isUp = false;
-        event.preventDefault();
-      }
-    };
-  
-    //The `upHandler`
-    key.upHandler = event => {
-      if (event.key === key.value) {
-        if (key.isDown && key.release) key.release();
-        key.isDown = false;
-        key.isUp = true;
-        event.preventDefault();
-      }
-    };
-  
-    //Attach event listeners
-    const downListener = key.downHandler.bind(key);
-    const upListener = key.upHandler.bind(key);
-    
-    window.addEventListener(
-      "keydown", downListener, false
-    );
-    window.addEventListener(
-      "keyup", upListener, false
-    );
-    
-    // Detach event listeners
-    key.unsubscribe = () => {
-      window.removeEventListener("keydown", downListener);
-      window.removeEventListener("keyup", upListener);
-    };
-    
-    return key;
-}
